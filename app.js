@@ -17,30 +17,24 @@ app.use(bodyParser.urlencoded({extended:true}));
 
 app.use(express.static("public"));
 
-
 mongoose.connect("mongodb://localhost:27017/blogDB",{useNewUrlParser:true});
-
 
 const postSchema= {
     title: String,
     content: String
 };
 
-const Post= moongoose.model("Post",postSchema);
+const Post= mongoose.model("Post",postSchema);
 
-let posts=[];
 
-app.get("/",(req,res)=>{
-    res.render("home",{startingContent: homeStartingContent, posts: posts});
-  //redirect after pushing post to posts array
-});
+app.get("/", function(req, res){
 
-app.get("/about",(req,res)=>{
-    res.render("about",{aboutPageContent: aboutContent })
-});
-
-app.get("/contact",(req,res)=>{
-    res.render("contact",{contactPageContent: contactContent })
+    Post.find({}, function(err, posts){
+    res.render("home", {
+        startingContent: homeStartingContent,
+        posts: posts
+        });
+    });
 });
 
 app.get("/compose",(req,res)=>{
@@ -50,29 +44,39 @@ app.get("/compose",(req,res)=>{
 
 app.post("/compose",(req,res)=>
 {
-    const post={
-        title: req.body.composeMessage,
+    const post= new Post({
+        title: req.body.postTitle,
         content: req.body.postBody
-    };
+    });
 
-    post.save();
-    res.redirect("/");
-
-
-});
-
-app.get("/posts/:postName",(req, res)=>{                  //Express Routing
-
-    const requestedTitle = _.lowerCase(req.params.postName);  //using lodash
-
-    posts.forEach(function(post){
-        const storedTitle=  _.lowerCase(post.title);
-        if(requestedTitle === storedTitle)
-        {
-            res.render("post",{title: post.title , content: post.content});
+    post.save(function(err){
+        if (!err){
+            res.redirect("/");
         }
     });
 });
+
+app.get("/posts/:postId", function(req, res){
+
+    const requestedPostId = req.params.postId;
+    
+    Post.findOne({_id: requestedPostId}, function(err, post){
+        res.render("post", {
+        title: post.title,
+        content: post.content
+        });
+    });
+    
+});
+
+app.get("/about",(req,res)=>{
+    res.render("about",{aboutContent: aboutContent })
+});
+
+app.get("/contact",(req,res)=>{
+    res.render("contact",{contactContent: contactContent })
+});
+
 
 app.listen(3000,()=>{
     console.log("Server is running on port 3000");
